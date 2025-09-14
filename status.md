@@ -11,7 +11,8 @@
 - [x] Implement deck shuffling (Fisher-Yates).
 - [x] Define `GameState`, `Move`, `Player`.
 - [x] Implement moves: `PLAY`, `PASS`, `CALL_BLUFF`.
-- [x] Implement cycling declared rank rule.
+- [x] Implement single pass rule.
+- [x] Implement dynamic declared rank selection.
 - [ ] Write Jest tests for engine.
 
 ## Phase 2 – Backend Server

@@ -99,8 +99,24 @@ io.on('connection', (socket: SocketWithAuth) => {
         return;
       }
 
-      const newGameState = room.applyMove(move);
+      const [newGameState, gameEvents] = room.applyMove(move);
       io.to(roomName).emit('gameUpdated', newGameState);
+
+      for (const event of gameEvents) {
+        switch (event.type) {
+          case 'PLAYER_EMPTIED_HAND':
+            io.to(roomName).emit('playerEmptiedHand', {
+              playerId: event.playerId,
+            });
+            break;
+          case 'PILE_TAKEN':
+            io.to(roomName).emit('pileTaken', {
+              playerId: event.playerId,
+              reason: event.reason,
+            });
+            break;
+        }
+      }
     }
   });
 

@@ -1,5 +1,5 @@
 import { SUITS, RANKS } from './constants';
-import { Card, Player, GameState, Move, Rules } from './types';
+import { Card, Player, GameState, Move, Rules, GameEvent } from './types';
 
 export function createDeck(): Card[] {
   const deck: Card[] = [];
@@ -40,6 +40,7 @@ export function dealCards(playerIds: string[], rules: Rules): GameState {
     lastMove: null,
     rules,
     currentDeclaredRank: RANKS[0],
+    rankSelectionMode: 'FREE',
   };
 }
 
@@ -49,8 +50,12 @@ function getPreviousPlayerIndex(state: GameState): number {
   );
 }
 
-export function applyMove(state: GameState, move: Move): GameState {
-  if (state.winnerId) return state; // Game is already over
+export function applyMove(
+  state: GameState,
+  move: Move
+): [GameState, GameEvent[]] {
+  const gameEvents: GameEvent[] = [];
+  if (state.winnerId) return [state, gameEvents]; // Game is already over
 
   // Check if the previous player's move made them win.
   // This happens if the current move is NOT a challenge.
@@ -58,13 +63,22 @@ export function applyMove(state: GameState, move: Move): GameState {
     const lastPlayerIndex = getPreviousPlayerIndex(state);
     const lastPlayer = state.players[lastPlayerIndex];
     if (lastPlayer.hand.length === 0) {
-      return { ...state, winnerId: lastPlayer.id };
+      return [{ ...state, winnerId: lastPlayer.id }, gameEvents];
     }
   }
 
   switch (move.type) {
     case 'PLAY': {
       const player = state.players[state.currentPlayerIndex];
+
+      // Validate declared rank based on rankSelectionMode
+      if (
+        state.rankSelectionMode === 'FIXED' &&
+        move.payload.declaredRank !== state.currentDeclaredRank
+      ) {
+        return [state, gameEvents]; // Invalid move: declared rank must match current rank
+      }
+
       const newHand = player.hand.filter(
         (card) =>
           !move.payload.cards.some(
@@ -75,28 +89,26 @@ export function applyMove(state: GameState, move: Move): GameState {
       const newPlayers = [...state.players];
       newPlayers[state.currentPlayerIndex] = { ...player, hand: newHand };
 
-      const nextRankIndex =
-        (RANKS.indexOf(state.currentDeclaredRank) + 1) % RANKS.length;
-
-      return {
+      const newState = {
         ...state,
         players: newPlayers,
         pile: [...state.pile, ...move.payload.cards],
         currentPlayerIndex:
           (state.currentPlayerIndex + 1) % state.players.length,
-        lastMove: {
-          ...move,
-          payload: {
-            ...move.payload,
-            declaredRank: state.currentDeclaredRank,
-          },
-        },
-        currentDeclaredRank: RANKS[nextRankIndex],
+        lastMove: move,
+        currentDeclaredRank: move.payload.declaredRank,
+        rankSelectionMode: 'FIXED' as 'FREE' | 'FIXED',
       };
+
+      if (newHand.length === 0) {
+        gameEvents.push({ type: 'PLAYER_EMPTIED_HAND', playerId: player.id });
+      }
+
+      return [newState, gameEvents];
     }
     case 'CALL_BLUFF': {
       if (!state.lastMove || state.lastMove.type !== 'PLAY') {
-        return state; // Invalid move
+        return [state, gameEvents]; // Invalid move
       }
 
       const lastMove = state.lastMove;
@@ -115,14 +127,24 @@ export function applyMove(state: GameState, move: Move): GameState {
           ...challenger,
           hand: [...challenger.hand, ...state.pile],
         };
+        gameEvents.push({
+          type: 'PILE_TAKEN',
+          playerId: challenger.id,
+          reason: 'BLUFF_CALLED_CORRECTLY',
+        });
 
-        return {
-          ...state,
-          players: newPlayers,
-          pile: [],
-          lastMove: move,
-          winnerId: lastPlayer.id,
-        };
+        return [
+          {
+            ...state,
+            players: newPlayers,
+            pile: [],
+            lastMove: move,
+            winnerId: lastPlayer.id,
+            currentDeclaredRank: RANKS[0],
+            rankSelectionMode: 'FREE',
+          },
+          gameEvents,
+        ];
       }
 
       const newPlayers = [...state.players];
@@ -136,6 +158,11 @@ export function applyMove(state: GameState, move: Move): GameState {
           hand: [...challenger.hand, ...state.pile],
         };
         nextPlayerIndex = state.currentPlayerIndex;
+        gameEvents.push({
+          type: 'PILE_TAKEN',
+          playerId: challenger.id,
+          reason: 'BLUFF_CALLED_CORRECTLY',
+        });
       } else {
         // Last player takes the pile
         newPlayers[lastPlayerIndex] = {
@@ -143,28 +170,44 @@ export function applyMove(state: GameState, move: Move): GameState {
           hand: [...lastPlayer.hand, ...state.pile],
         };
         nextPlayerIndex = lastPlayerIndex;
+        gameEvents.push({
+          type: 'PILE_TAKEN',
+          playerId: lastPlayer.id,
+          reason: 'BLUFF_CALLED_INCORRECTLY',
+        });
       }
 
-      return {
-        ...state,
-        players: newPlayers,
-        pile: [],
-        lastMove: move,
-        currentPlayerIndex: nextPlayerIndex,
-      };
+      return [
+        {
+          ...state,
+          players: newPlayers,
+          pile: [],
+          lastMove: move,
+          currentPlayerIndex: nextPlayerIndex,
+          currentDeclaredRank: RANKS[0],
+          rankSelectionMode: 'FREE',
+        },
+        gameEvents,
+      ];
     }
     case 'PASS': {
       if (!state.rules.allowPass) {
-        return state; // Invalid move
+        return [state, gameEvents]; // Invalid move
       }
-      return {
-        ...state,
-        currentPlayerIndex:
-          (state.currentPlayerIndex + 1) % state.players.length,
-        lastMove: move,
-      };
+      if (state.lastMove?.type === 'PASS') {
+        return [state, gameEvents]; // Cannot pass if the previous move was also a pass
+      }
+      return [
+        {
+          ...state,
+          currentPlayerIndex:
+            (state.currentPlayerIndex + 1) % state.players.length,
+          lastMove: move,
+        },
+        gameEvents,
+      ];
     }
     default:
-      return state;
+      return [state, gameEvents];
   }
 }

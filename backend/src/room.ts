@@ -1,4 +1,4 @@
-import { GameState, Move, Player, Rules } from '@bluff/shared';
+import { GameState, Move, Player, Rules, GameEvent } from '@bluff/shared';
 import { dealCards, applyMove } from '@bluff/shared';
 
 export class Room {
@@ -44,9 +44,10 @@ export class Room {
     this.resetRematch();
   }
 
-  applyMove(move: Move): GameState {
-    this.gameState = applyMove(this.gameState, move);
-    return this.gameState;
+  applyMove(move: Move): [GameState, GameEvent[]] {
+    const [newGameState, gameEvents] = applyMove(this.gameState, move);
+    this.gameState = newGameState;
+    return [newGameState, gameEvents];
   }
 
   getGameState(): GameState {
