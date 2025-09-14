@@ -1,7 +1,7 @@
 import { SUITS, RANKS } from './constants';
 
-export type Suit = typeof SUITS[number];
-export type Rank = typeof RANKS[number];
+export type Suit = (typeof SUITS)[number];
+export type Rank = (typeof RANKS)[number];
 
 export interface Card {
   suit: Suit;
@@ -14,7 +14,7 @@ export interface Player {
 }
 
 export interface Rules {
-    allowPass: boolean;
+  allowPass: boolean;
 }
 
 export interface GameState {
@@ -24,9 +24,19 @@ export interface GameState {
   lastMove: Move | null;
   rules: Rules;
   winnerId?: string;
+  currentDeclaredRank: Rank;
+  rankSelectionMode: 'FREE' | 'FIXED';
 }
 
-export type Move = 
+export type Move =
   | { type: 'PLAY'; payload: { cards: Card[]; declaredRank: Rank } }
   | { type: 'PASS' }
   | { type: 'CALL_BLUFF' };
+
+export type GameEvent =
+  | { type: 'PLAYER_EMPTIED_HAND'; playerId: string }
+  | {
+      type: 'PILE_TAKEN';
+      playerId: string;
+      reason: 'BLUFF_CALLED_CORRECTLY' | 'BLUFF_CALLED_INCORRECTLY';
+    };

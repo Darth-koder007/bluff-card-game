@@ -5,6 +5,11 @@ export interface ServerToClientEvents {
   joinedRoom: (data: { userId: string; gameState: GameState }) => void;
   gameUpdated: (gameState: GameState) => void;
   rematchStatusUpdate: (data: { requestedBy: string[] }) => void;
+  playerEmptiedHand: (data: { playerId: string }) => void;
+  pileTaken: (data: {
+    playerId: string;
+    reason: 'BLUFF_CALLED_CORRECTLY' | 'BLUFF_CALLED_INCORRECTLY';
+  }) => void;
 }
 
 export interface ClientToServerEvents {

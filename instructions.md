@@ -36,7 +36,8 @@ Build and maintain a multiplayer Bluff (a.k.a. Cheat/BS) card game that runs as 
 ### Base Rules
 - **Goal**: Empty your hand first.
 - **Turn Order**: Clockwise.
-- **Declared Rank**: Cycles A → K → A (toggleable).
+- **Declared Rank**: When the game starts or the pile has been reset (after a challenge), the player can declare any rank. During normal play, the player must declare the rank of the last played cards. When the pile is cleared, the declared rank resets to 'A'.
+- **Single Pass**: A player cannot pass if the immediately preceding move was also a pass.
 - **On Turn**: Play ≥1 cards face-down + declare rank.
 - **Challenge**: Anyone can challenge.
     - If all cards match → challenger takes pile.

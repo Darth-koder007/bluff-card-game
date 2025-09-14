@@ -2,16 +2,18 @@
 
 ## Phase 0 – Foundational Tooling
 
-- [ ] Set up linting, formatting, and pre-commit hooks (ESLint, Prettier, Husky).
+- [x] Set up linting, formatting, and pre-commit hooks (ESLint, Prettier, Husky).
 - [ ] Standardize on a testing framework (Vitest).
-- [ ] Containerize the entire application with Docker.
+- [x] Containerize the entire application with Docker.
 
 ## Phase 1 – Core Game Engine
 
 - [x] Implement deck shuffling (Fisher-Yates).
 - [x] Define `GameState`, `Move`, `Player`.
 - [x] Implement moves: `PLAY`, `PASS`, `CALL_BLUFF`.
-- [x] Write Jest tests for engine.
+- [x] Implement single pass rule.
+- [x] Implement dynamic declared rank selection.
+- [ ] Write Jest tests for engine.
 
 ## Phase 2 – Backend Server
 
@@ -19,7 +21,7 @@
 - [x] Room lifecycle: create, join, start.
 - [x] Integrate engine with live game state.
 - [x] Basic persistence with Prisma and PostgreSQL for users.
-- [ ] Rematch functionality.
+- [x] Rematch functionality.
 
 ## Phase 3 – Frontend
 
@@ -42,4 +44,4 @@
 
 ## Current Issues
 
-- **Rematch:** No rematch functionality exists yet.
+- No major issues at the moment.

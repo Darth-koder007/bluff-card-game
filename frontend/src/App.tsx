@@ -8,6 +8,8 @@ import { Hand } from './components/Hand';
 import { Pile } from './components/Pile';
 import { Players } from './components/Players';
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 interface Store {
   gameState: GameState | null;
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
@@ -19,6 +21,7 @@ interface Store {
   startGame: () => void;
   makeMove: (move: Move) => void;
   rematch: () => void;
+  setNotificationMessage: (message: string | null) => void;
 }
 
 const useStore = create<Store>((set, get) => ({
@@ -26,8 +29,9 @@ const useStore = create<Store>((set, get) => ({
   socket: null,
   userId: null,
   rematchRequestedBy: [],
+  setNotificationMessage: (message) => set({ notificationMessage: message }),
   connect: (token) => {
-    const socket = io('http://localhost:3000', {
+    const socket = io(apiUrl, {
       auth: { token },
     });
     set({ socket });
@@ -54,6 +58,20 @@ const useStore = create<Store>((set, get) => ({
 
     socket.on('rematchStatusUpdate', ({ requestedBy }) => {
       set({ rematchRequestedBy: requestedBy });
+    });
+
+    socket.on('playerEmptiedHand', ({ playerId }) => {
+      get().setNotificationMessage(
+        `${playerId.substring(0, 8)} emptied their hand!`
+      );
+    });
+
+    socket.on('pileTaken', ({ playerId, reason }) => {
+      const reasonText =
+        reason === 'BLUFF_CALLED_CORRECTLY'
+          ? 'was caught bluffing and took the pile!'
+          : 'incorrectly called bluff and took the pile!';
+      get().setNotificationMessage(`${playerId.substring(0, 8)} ${reasonText}`);
     });
   },
   disconnect: () => {
@@ -94,6 +112,7 @@ function App() {
     userId,
     rematch,
     rematchRequestedBy,
+    notificationMessage,
   } = useStore();
   const [selectedCards, setSelectedCards] = useState<Card[]>([]);
   const [declaredRank, setDeclaredRank] = useState<Rank | null>(null);
@@ -121,19 +140,35 @@ function App() {
   };
 
   const handlePlay = () => {
-    if (!gameState || !userId || selectedCards.length === 0 || !declaredRank)
-      return;
+    if (!gameState || !userId || selectedCards.length === 0) return;
+
+    let rankToDeclare: Rank;
+    if (gameState.rankSelectionMode === 'FREE') {
+      if (!declaredRank) return; // Must select a rank in FREE mode
+      rankToDeclare = declaredRank;
+    } else {
+      // FIXED mode
+      rankToDeclare = gameState.currentDeclaredRank;
+    }
+
     const move: Move = {
       type: 'PLAY',
-      payload: { cards: selectedCards, declaredRank },
+      payload: { cards: selectedCards, declaredRank: rankToDeclare },
     };
     makeMove(move);
     setSelectedCards([]);
-    setDeclaredRank(null);
+    if (gameState.rankSelectionMode === 'FREE') {
+      // Only reset if it was FREE
+      setDeclaredRank(null);
+    }
   };
 
   const handleCallBluff = () => {
     makeMove({ type: 'CALL_BLUFF' });
+  };
+
+  const handlePass = () => {
+    makeMove({ type: 'PASS' });
   };
 
   const handleLogout = () => {
@@ -149,6 +184,9 @@ function App() {
   const isMyTurn =
     gameState &&
     userId &&
+    gameState.players.length > 0 &&
+    gameState.currentPlayerIndex >= 0 &&
+    gameState.currentPlayerIndex < gameState.players.length &&
     gameState.players[gameState.currentPlayerIndex].id === userId;
   const canCallBluff =
     gameState && gameState.lastMove && gameState.lastMove.type === 'PLAY';
@@ -166,6 +204,11 @@ function App() {
 
   return (
     <main className="bg-green-700 min-h-screen flex flex-col items-center justify-center p-2 md:p-4 font-sans">
+      {notificationMessage && (
+        <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white text-center p-2 z-50 shadow-lg">
+          {notificationMessage}
+        </div>
+      )}
       <div className="absolute top-4 right-4">
         <button
           onClick={handleLogout}
@@ -240,7 +283,8 @@ function App() {
                   disabled={
                     !isMyTurn ||
                     selectedCards.length === 0 ||
-                    !declaredRank ||
+                    (gameState?.rankSelectionMode === 'FREE' &&
+                      !declaredRank) ||
                     !!winner
                   }
                   className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
@@ -254,22 +298,43 @@ function App() {
                 >
                   Call Bluff
                 </button>
-                {isMyTurn && !winner && (
-                  <select
-                    onChange={(e) => setDeclaredRank(e.target.value as Rank)}
-                    value={declaredRank || ''}
-                    className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="" disabled>
-                      Declare Rank
-                    </option>
-                    {RANKS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
+                <button
+                  onClick={handlePass}
+                  disabled={!isMyTurn || !!winner}
+                  className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-sm hover:bg-yellow-600 disabled:bg-gray-400 transition-colors"
+                >
+                  Pass
+                </button>
+                {isMyTurn &&
+                  !winner &&
+                  (gameState.rankSelectionMode === 'FREE' ? (
+                    <select
+                      onChange={(e) => {
+                        console.log(
+                          'Declared Rank changed to:',
+                          e.target.value
+                        );
+                        setDeclaredRank(e.target.value as Rank);
+                      }}
+                      value={declaredRank || ''}
+                      className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="" disabled>
+                        Declare Rank
                       </option>
-                    ))}
-                  </select>
-                )}
+                      {RANKS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-2 bg-gray-700 rounded-lg">
+                      <p className="text-white font-bold">
+                        Declare: {gameState.currentDeclaredRank}
+                      </p>
+                    </div>
+                  ))}
               </div>
               {userId && (
                 <Hand
