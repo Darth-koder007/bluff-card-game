@@ -47,6 +47,8 @@ function getPreviousPlayerIndex(state: GameState): number {
 }
 
 export function applyMove(state: GameState, move: Move): GameState {
+  if (state.winnerId) return state; // Game is already over
+
   switch (move.type) {
     case 'PLAY': {
       const player = state.players[state.currentPlayerIndex];
@@ -57,13 +59,19 @@ export function applyMove(state: GameState, move: Move): GameState {
       const newPlayers = [...state.players];
       newPlayers[state.currentPlayerIndex] = { ...player, hand: newHand };
 
-      return {
+      const newState = {
         ...state,
         players: newPlayers,
         pile: [...state.pile, ...move.payload.cards],
         currentPlayerIndex: (state.currentPlayerIndex + 1) % state.players.length,
         lastMove: move,
       };
+
+      if (newHand.length === 0) {
+        newState.winnerId = player.id;
+      }
+
+      return newState;
     }
     case 'CALL_BLUFF': {
         if (!state.lastMove || state.lastMove.type !== 'PLAY') {

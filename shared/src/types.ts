@@ -23,6 +23,7 @@ export interface GameState {
   currentPlayerIndex: number;
   lastMove: Move | null;
   rules: Rules;
+  winnerId?: string;
 }
 
 export type Move = 

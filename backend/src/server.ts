@@ -55,9 +55,10 @@ io.on('connection', (socket) => {
 
   socket.on('startGame', () => {
     const roomName = (socket as SocketWithRoom).room;
-    if (roomName && rooms.has(roomName)) {
+    const userId = (socket as SocketWithRoom).userId;
+    if (roomName && rooms.has(roomName) && userId) {
         const room = rooms.get(roomName)!;
-        room.startGame();
+        room.startGame(userId);
         io.to(roomName).emit('gameUpdated', room.getGameState());
     }
   });

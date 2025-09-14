@@ -39,19 +39,25 @@ function getPreviousPlayerIndex(state) {
     return (state.currentPlayerIndex - 1 + state.players.length) % state.players.length;
 }
 export function applyMove(state, move) {
+    if (state.winnerId)
+        return state; // Game is already over
     switch (move.type) {
         case 'PLAY': {
             const player = state.players[state.currentPlayerIndex];
             const newHand = player.hand.filter(card => !move.payload.cards.some(c => c.rank === card.rank && c.suit === card.suit));
             const newPlayers = [...state.players];
             newPlayers[state.currentPlayerIndex] = { ...player, hand: newHand };
-            return {
+            const newState = {
                 ...state,
                 players: newPlayers,
                 pile: [...state.pile, ...move.payload.cards],
                 currentPlayerIndex: (state.currentPlayerIndex + 1) % state.players.length,
                 lastMove: move,
             };
+            if (newHand.length === 0) {
+                newState.winnerId = player.id;
+            }
+            return newState;
         }
         case 'CALL_BLUFF': {
             if (!state.lastMove || state.lastMove.type !== 'PLAY') {

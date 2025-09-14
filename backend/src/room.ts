@@ -26,8 +26,13 @@ export class Room {
         this.gameState.players = this.gameState.players.filter(p => p.id !== playerId);
     }
 
-    startGame() {
+    startGame(starterId: string) {
         const playerIds = Array.from(this.players.keys());
+        const starterIndex = playerIds.indexOf(starterId);
+        if (starterIndex > 0) {
+            const [starter] = playerIds.splice(starterIndex, 1);
+            playerIds.unshift(starter);
+        }
         this.gameState = dealCards(playerIds, this.rules);
     }
 
