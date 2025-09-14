@@ -138,6 +138,10 @@ function App() {
     makeMove({ type: 'CALL_BLUFF' });
   };
 
+  const handlePass = () => {
+    makeMove({ type: 'PASS' });
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('session_token');
     disconnect();
@@ -255,6 +259,13 @@ function App() {
                   className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-sm hover:bg-red-600 disabled:bg-gray-400 transition-colors"
                 >
                   Call Bluff
+                </button>
+                <button
+                  onClick={handlePass}
+                  disabled={!isMyTurn || !!winner}
+                  className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-sm hover:bg-yellow-600 disabled:bg-gray-400 transition-colors"
+                >
+                  Pass
                 </button>
                 {isMyTurn && !winner && (
                   <select

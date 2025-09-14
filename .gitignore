@@ -15,3 +15,7 @@ node_modules
 .env.*
 !/.env.example
 
+# Ignore compiled JS and declaration files in src
+**/src/**/*.js
+**/src/**/*.d.ts
+

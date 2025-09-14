@@ -2,12 +2,12 @@
   "name": "bluff",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel --stream -r dev",
+    "dev": "pnpm --filter=@bluff/shared build && pnpm --parallel --stream -r dev",
     "build": "pnpm --filter=@bluff/shared build && pnpm --filter=@bluff/frontend build && pnpm --filter=@bluff/backend build",
     "test": "pnpm -r test",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
-    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules frontend/dist backend/dist shared/dist **/*.log",
+    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules frontend/dist backend/dist shared/dist **/*.log **/src/**/*.js **/src/**/*.d.ts **/src/*.js **/src/*.d.ts",
     "prepare": "husky"
   },
   "lint-staged": {

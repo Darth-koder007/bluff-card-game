@@ -61,7 +61,7 @@ io.on('connection', (socket: SocketWithAuth) => {
     console.log(`user ${socket.userId} joined room: ${roomName}`);
 
     if (!rooms.has(roomName)) {
-      rooms.set(roomName, new Room(roomName, { allowPass: false }));
+      rooms.set(roomName, new Room(roomName, { allowPass: true }));
     }
 
     const room = rooms.get(roomName)!;
@@ -85,8 +85,20 @@ io.on('connection', (socket: SocketWithAuth) => {
 
   socket.on('move', (move) => {
     const roomName = socket.room;
-    if (roomName && rooms.has(roomName)) {
+    const userId = socket.userId;
+    if (roomName && rooms.has(roomName) && userId) {
       const room = rooms.get(roomName)!;
+      const gameState = room.getGameState();
+
+      if (
+        move.type !== 'CALL_BLUFF' &&
+        gameState.players[gameState.currentPlayerIndex].id !== userId
+      ) {
+        // It's not this player's turn, and it's not a bluff call.
+        // Any player can call a bluff, so we only block other moves.
+        return;
+      }
+
       const newGameState = room.applyMove(move);
       io.to(roomName).emit('gameUpdated', newGameState);
     }
