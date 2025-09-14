@@ -8,6 +8,8 @@ import { Hand } from './components/Hand';
 import { Pile } from './components/Pile';
 import { Players } from './components/Players';
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 interface Store {
   gameState: GameState | null;
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
@@ -27,7 +29,7 @@ const useStore = create<Store>((set, get) => ({
   userId: null,
   rematchRequestedBy: [],
   connect: (token) => {
-    const socket = io('http://localhost:3000', {
+    const socket = io(apiUrl, {
       auth: { token },
     });
     set({ socket });

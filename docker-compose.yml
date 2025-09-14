@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   db:
-    image: postgres
+    image: postgres:15-alpine
     restart: always
     environment:
       - POSTGRES_USER=postgres
@@ -9,6 +9,36 @@ services:
       - POSTGRES_DB=bluff
     ports:
       - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/bluff
+      - JWT_SECRET=a-very-secret-key-that-should-be-in-a-secret-manager
+    depends_on:
+      - db
+    command: >
+      sh -c "
+        pnpm --filter=@bluff/backend exec prisma migrate deploy &&
+        pnpm --filter=@bluff/backend start
+      "
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - VITE_API_URL=http://backend:3000
+    ports:
+      - "8080:80" # Map to 8080 on the host to avoid conflicts with other services that might use 80
+    depends_on:
+      - backend
 
 volumes:
   db_data:

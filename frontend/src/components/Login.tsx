@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,8 +15,8 @@ export function Login() {
     setError('');
 
     const url = isRegistering
-      ? 'http://localhost:3000/auth/register'
-      : 'http://localhost:3000/auth/login';
+      ? `${apiUrl}/auth/register`
+      : `${apiUrl}/auth/login`;
 
     try {
       const res = await fetch(url, {
