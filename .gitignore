@@ -1,1 +1,17 @@
+# Dependencies
 node_modules
+
+# Build output
+/frontend/dist
+/backend/dist
+/shared/dist
+
+# Logs
+*.log
+**/*.log
+
+# Environment
+.env
+.env.*
+!/.env.example
+
