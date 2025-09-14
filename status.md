@@ -1,5 +1,11 @@
 # Project Status
 
+## Phase 0 – Foundational Tooling
+
+- [ ] Set up linting, formatting, and pre-commit hooks (ESLint, Prettier, Husky).
+- [ ] Standardize on a testing framework (Vitest).
+- [ ] Containerize the entire application with Docker.
+
 ## Phase 1 – Core Game Engine
 
 - [x] Implement deck shuffling (Fisher-Yates).
@@ -24,7 +30,7 @@
 
 ## Phase 4 – Accounts & Stats
 
-- [ ] Email magic link login.
+- [x] Implement email & password login.
 - [ ] Track wins/losses per user.
 - [ ] Display stats & leaderboards.
 
@@ -36,5 +42,4 @@
 
 ## Current Issues
 
-- **Authentication:**
-    - Users are currently identified by their socket ID, and a new user is created for each new connection. There is no proper user authentication.
+- **Rematch:** No rematch functionality exists yet.
