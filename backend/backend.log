@@ -1,0 +1,34 @@
+[INFO] 21:42:47 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.2)
+listening on *:3000
+a user connected
+a user connected
+a user connected
+a user connected
+a user joined room: room1
+PrismaClientInitializationError: 
+Invalid `prisma.user.findUnique()` invocation in
+/Users/v.singh/dev/bluff/backend/src/server.ts:34:34
+
+  31 (socket as SocketWithRoom).room = roomName;
+  32 console.log(`a user joined room: ${roomName}`);
+  33 
+→ 34 let user = await prisma.user.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (/Users/v.singh/dev/bluff/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7615)
+    at $n.handleAndLogRequestError (/Users/v.singh/dev/bluff/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/v.singh/dev/bluff/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at l (/Users/v.singh/dev/bluff/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at Socket.<anonymous> (/Users/v.singh/dev/bluff/backend/src/server.ts:34:16)
+[ERROR] 21:42:51 PrismaClientInitializationError: 
+Invalid `prisma.user.findUnique()` invocation in
+/Users/v.singh/dev/bluff/backend/src/server.ts:34:34
+
+  31 (socket as SocketWithRoom).room = roomName;
+  32 console.log(`a user joined room: ${roomName}`);
+  33 
+→ 34 let user = await prisma.user.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.

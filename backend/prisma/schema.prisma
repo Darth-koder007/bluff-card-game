@@ -1,0 +1,64 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  displayName  String?   @map("display_name")
+  avatarUrl    String?   @map("avatar_url")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  games        GameParticipant[]
+  stats        UserStats?
+  wonGames     Game[]
+  moves        Move[]
+}
+
+model Game {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now()) @map("created_at")
+  finishedAt   DateTime? @map("finished_at")
+  rulesJson    String    @map("rules_json")
+  winner       User?     @relation(fields: [winnerUserId], references: [id])
+  winnerUserId String?
+  participants GameParticipant[]
+  moves        Move[]
+}
+
+model GameParticipant {
+  game     Game     @relation(fields: [gameId], references: [id])
+  gameId   String
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String
+  seat     Int
+  result   String?
+  turnsTaken Int      @map("turns_taken")
+
+  @@id([gameId, userId])
+}
+
+model Move {
+  id         String   @id @default(cuid())
+  game       Game     @relation(fields: [gameId], references: [id])
+  gameId     String
+  actor      User     @relation(fields: [actorId], references: [id])
+  actorId    String
+  type       String
+  payloadJson String   @map("payload_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
+model UserStats {
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String   @id
+  lifetimeWins Int      @map("lifetime_wins")
+  losses       Int
+  streak       Int
+  elo          Float
+  lastPlayedAt DateTime @map("last_played_at")
+}
