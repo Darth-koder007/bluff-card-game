@@ -1,5 +1,8 @@
 import { GameState, Move } from "./types";
 export interface ServerToClientEvents {
+    authenticated: (data: {
+        userId: string;
+    }) => void;
     joinedRoom: (data: {
         userId: string;
         gameState: GameState;

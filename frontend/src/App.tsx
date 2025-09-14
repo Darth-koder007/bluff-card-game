@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { create } from 'zustand';
 import { GameState, Move, Card, Rank, RANKS } from '@bluff/shared';
@@ -11,19 +12,34 @@ interface Store {
   gameState: GameState | null;
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   userId: string | null;
-  connect: () => void;
+  connect: (token: string) => void;
+  disconnect: () => void;
   joinRoom: (room: string) => void;
   startGame: () => void;
   makeMove: (move: Move) => void;
 }
 
-const useStore = create<Store>((set) => ({
+const useStore = create<Store>((set, get) => ({
   gameState: null,
   socket: null,
   userId: null,
-  connect: () => {
-    const socket = io('http://localhost:3000');
+  connect: (token) => {
+    const socket = io('http://localhost:3000', {
+      auth: { token }
+    });
     set({ socket });
+
+    socket.on('connect_error', (err) => {
+      console.error(err.message);
+      if (err.message.includes('Authentication error')) {
+        localStorage.removeItem('session_token');
+        window.location.href = '/login';
+      }
+    });
+
+    socket.on('authenticated', ({ userId }) => {
+      set({ userId });
+    });
 
     socket.on('joinedRoom', ({ userId, gameState }) => {
       set({ userId, gameState });
@@ -33,39 +49,45 @@ const useStore = create<Store>((set) => ({
         set({ gameState });
     });
   },
+  disconnect: () => {
+    get().socket?.disconnect();
+    set({ socket: null, gameState: null, userId: null });
+  },
   joinRoom: (room) => {
-    const socket = useStore.getState().socket;
-    if (socket) {
-      socket.emit('joinRoom', room);
-    }
+    get().socket?.emit('joinRoom', room);
   },
   startGame: () => {
-    const socket = useStore.getState().socket;
-    if (socket) {
-      socket.emit('startGame');
+    const starterId = get().userId;
+    if (starterId) {
+        get().socket?.emit('startGame', starterId);
     }
   },
   makeMove: (move) => {
-    const socket = useStore.getState().socket;
-    if (socket) {
-      socket.emit('move', move);
-    }
+    get().socket?.emit('move', move);
   },
 }));
 
 function App() {
-  const { connect, joinRoom, startGame, gameState, makeMove, userId } = useStore();
+  const navigate = useNavigate();
+  const { connect, disconnect, joinRoom, startGame, gameState, makeMove, userId } = useStore();
   const [selectedCards, setSelectedCards] = useState<Card[]>([]);
   const [declaredRank, setDeclaredRank] = useState<Rank | null>(null);
 
   useEffect(() => {
-    connect();
-    // Clean up the console.log from debugging
-    return () => {};
-  }, [connect]);
+    const token = localStorage.getItem('session_token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    connect(token);
+
+    return () => {
+      disconnect();
+    }
+  }, [connect, disconnect, navigate]);
 
   const handleCardClick = (card: Card) => {
-    if (gameState?.winnerId) return; // Don't allow changes if game is over
+    if (gameState?.winnerId) return;
     setSelectedCards(prev => 
       prev.find(c => c.rank === card.rank && c.suit === card.suit) 
         ? prev.filter(c => !(c.rank === card.rank && c.suit === card.suit))
@@ -75,33 +97,35 @@ function App() {
 
   const handlePlay = () => {
     if (!gameState || !userId || selectedCards.length === 0 || !declaredRank) return;
-
-    const move: Move = {
-        type: 'PLAY',
-        payload: { cards: selectedCards, declaredRank },
-    };
+    const move: Move = { type: 'PLAY', payload: { cards: selectedCards, declaredRank } };
     makeMove(move);
     setSelectedCards([]);
     setDeclaredRank(null);
   }
 
   const handleCallBluff = () => {
-    const move: Move = { type: 'CALL_BLUFF' };
-    makeMove(move);
+    makeMove({ type: 'CALL_BLUFF' });
   }
 
-  const handlePass = () => {
-    const move: Move = { type: 'PASS' };
-    makeMove(move);
+  const handleLogout = () => {
+    localStorage.removeItem('session_token');
+    disconnect();
+    navigate('/login');
   }
 
   const isMyTurn = gameState && userId && gameState.players[gameState.currentPlayerIndex].id === userId;
   const canCallBluff = gameState && gameState.lastMove && gameState.lastMove.type === 'PLAY';
-
   const winner = gameState?.winnerId ? gameState.players.find(p => p.id === gameState.winnerId) : null;
+
+  if (!userId) {
+    return <div className="bg-green-700 min-h-screen flex items-center justify-center text-white">Connecting...</div>;
+  }
 
   return (
     <main className="bg-green-700 min-h-screen flex flex-col items-center justify-center p-2 md:p-4 font-sans">
+        <div className="absolute top-4 right-4">
+            <button onClick={handleLogout} className="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg shadow-md hover:bg-gray-600 transition-colors">Logout</button>
+        </div>
       {!gameState ? (
         <div className="text-center">
             <h1 className="text-5xl font-bold text-white mb-8">Bluff</h1>
@@ -109,12 +133,9 @@ function App() {
         </div>
       ) : (
         <div className="w-full h-full max-w-5xl mx-auto flex flex-col justify-between">
-          {/* Opponents Area */}
           <div className="w-full">
             <Players gameState={gameState} />
           </div>
-
-          {/* Table Center Area */}
           <div className="flex-grow flex flex-col items-center justify-center my-4">
             {winner && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -126,8 +147,6 @@ function App() {
             )}
             <Pile gameState={gameState} />
           </div>
-
-          {/* Player Area */}
           <div className="w-full">
             <div className="p-2 md:p-4 bg-gray-900 bg-opacity-30 rounded-lg flex flex-col items-center space-y-4">
               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -150,4 +169,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
