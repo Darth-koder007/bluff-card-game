@@ -39,6 +39,7 @@ export function dealCards(playerIds: string[], rules: Rules): GameState {
     currentPlayerIndex: 0,
     lastMove: null,
     rules,
+    currentDeclaredRank: RANKS[0],
   };
 }
 
@@ -74,13 +75,23 @@ export function applyMove(state: GameState, move: Move): GameState {
       const newPlayers = [...state.players];
       newPlayers[state.currentPlayerIndex] = { ...player, hand: newHand };
 
+      const nextRankIndex =
+        (RANKS.indexOf(state.currentDeclaredRank) + 1) % RANKS.length;
+
       return {
         ...state,
         players: newPlayers,
         pile: [...state.pile, ...move.payload.cards],
         currentPlayerIndex:
           (state.currentPlayerIndex + 1) % state.players.length,
-        lastMove: move,
+        lastMove: {
+          ...move,
+          payload: {
+            ...move.payload,
+            declaredRank: state.currentDeclaredRank,
+          },
+        },
+        currentDeclaredRank: RANKS[nextRankIndex],
       };
     }
     case 'CALL_BLUFF': {

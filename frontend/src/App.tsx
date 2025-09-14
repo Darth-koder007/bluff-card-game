@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { create } from 'zustand';
-import { GameState, Move, Card, Rank, RANKS } from '@bluff/shared';
+import { GameState, Move, Card } from '@bluff/shared';
 import { ServerToClientEvents, ClientToServerEvents } from '@bluff/shared';
 import { Hand } from './components/Hand';
 import { Pile } from './components/Pile';
@@ -98,7 +98,6 @@ function App() {
     rematchRequestedBy,
   } = useStore();
   const [selectedCards, setSelectedCards] = useState<Card[]>([]);
-  const [declaredRank, setDeclaredRank] = useState<Rank | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('session_token');
@@ -123,15 +122,16 @@ function App() {
   };
 
   const handlePlay = () => {
-    if (!gameState || !userId || selectedCards.length === 0 || !declaredRank)
-      return;
+    if (!gameState || !userId || selectedCards.length === 0) return;
     const move: Move = {
       type: 'PLAY',
-      payload: { cards: selectedCards, declaredRank },
+      payload: {
+        cards: selectedCards,
+        declaredRank: gameState.currentDeclaredRank, // Server will use this
+      },
     };
     makeMove(move);
     setSelectedCards([]);
-    setDeclaredRank(null);
   };
 
   const handleCallBluff = () => {
@@ -243,12 +243,7 @@ function App() {
                 </button>
                 <button
                   onClick={handlePlay}
-                  disabled={
-                    !isMyTurn ||
-                    selectedCards.length === 0 ||
-                    !declaredRank ||
-                    !!winner
-                  }
+                  disabled={!isMyTurn || selectedCards.length === 0 || !!winner}
                   className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
                 >
                   Play Cards
@@ -267,21 +262,12 @@ function App() {
                 >
                   Pass
                 </button>
-                {isMyTurn && !winner && (
-                  <select
-                    onChange={(e) => setDeclaredRank(e.target.value as Rank)}
-                    value={declaredRank || ''}
-                    className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="" disabled>
-                      Declare Rank
-                    </option>
-                    {RANKS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                {isMyTurn && !winner && gameState.currentDeclaredRank && (
+                  <div className="p-2 bg-gray-700 rounded-lg">
+                    <p className="text-white font-bold">
+                      Declare: {gameState.currentDeclaredRank}
+                    </p>
+                  </div>
                 )}
               </div>
               {userId && (
