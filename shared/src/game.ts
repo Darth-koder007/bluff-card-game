@@ -1,5 +1,5 @@
 import { SUITS, RANKS } from './constants';
-import { Card, Player, GameState, Move, Rules, GameEvent } from './types';
+import { Card, Player, GameState, Move, Rules, GameEvent, Rank } from './types';
 
 export function createDeck(): Card[] {
   const deck: Card[] = [];
@@ -40,7 +40,7 @@ export function dealCards(playerIds: string[], rules: Rules): GameState {
     lastMove: null,
     rules,
     currentDeclaredRank: RANKS[0],
-    rankSelectionMode: 'FREE',
+    expectedRank: null,
   };
 }
 
@@ -71,12 +71,18 @@ export function applyMove(
     case 'PLAY': {
       const player = state.players[state.currentPlayerIndex];
 
-      // Validate declared rank based on rankSelectionMode
-      if (
-        state.rankSelectionMode === 'FIXED' &&
-        move.payload.declaredRank !== state.currentDeclaredRank
-      ) {
-        return [state, gameEvents]; // Invalid move: declared rank must match current rank
+      // Validate declared rank
+      let newExpectedRank: Rank | null;
+      if (state.expectedRank === null) {
+        // First play of the game or after a pile reset, player can declare any rank
+        newExpectedRank = move.payload.declaredRank;
+      } else if (move.payload.declaredRank !== state.expectedRank) {
+        // Invalid move: declared rank must match expected rank
+        return [state, gameEvents];
+      } else {
+        // Advance to the next expected rank
+        const nextExpectedRankIndex = (RANKS.indexOf(state.expectedRank) + 1) % RANKS.length;
+        newExpectedRank = RANKS[nextExpectedRankIndex];
       }
 
       const newHand = player.hand.filter(
@@ -97,7 +103,7 @@ export function applyMove(
           (state.currentPlayerIndex + 1) % state.players.length,
         lastMove: move,
         currentDeclaredRank: move.payload.declaredRank,
-        rankSelectionMode: 'FIXED' as 'FREE' | 'FIXED',
+        expectedRank: newExpectedRank,
       };
 
       if (newHand.length === 0) {
@@ -129,8 +135,10 @@ export function applyMove(
         };
         gameEvents.push({
           type: 'PILE_TAKEN',
-          playerId: challenger.id,
-          reason: 'BLUFF_CALLED_CORRECTLY',
+          takerId: challenger.id,
+          blufferId: lastPlayer.id,
+          challengerId: state.players[state.currentPlayerIndex].id,
+          bluffWasTruthful: true,
         });
 
         return [
@@ -141,7 +149,7 @@ export function applyMove(
             lastMove: move,
             winnerId: lastPlayer.id,
             currentDeclaredRank: RANKS[0],
-            rankSelectionMode: 'FREE',
+            expectedRank: null,
           },
           gameEvents,
         ];
@@ -160,8 +168,10 @@ export function applyMove(
         nextPlayerIndex = state.currentPlayerIndex;
         gameEvents.push({
           type: 'PILE_TAKEN',
-          playerId: challenger.id,
-          reason: 'BLUFF_CALLED_CORRECTLY',
+          takerId: challenger.id,
+          blufferId: lastPlayer.id,
+          challengerId: state.players[state.currentPlayerIndex].id,
+          bluffWasTruthful: true,
         });
       } else {
         // Last player takes the pile
@@ -172,8 +182,10 @@ export function applyMove(
         nextPlayerIndex = lastPlayerIndex;
         gameEvents.push({
           type: 'PILE_TAKEN',
-          playerId: lastPlayer.id,
-          reason: 'BLUFF_CALLED_INCORRECTLY',
+          takerId: lastPlayer.id,
+          blufferId: lastPlayer.id,
+          challengerId: state.players[state.currentPlayerIndex].id,
+          bluffWasTruthful: false,
         });
       }
 
@@ -185,7 +197,7 @@ export function applyMove(
           lastMove: move,
           currentPlayerIndex: nextPlayerIndex,
           currentDeclaredRank: RANKS[0],
-          rankSelectionMode: 'FREE',
+          expectedRank: null,
         },
         gameEvents,
       ];

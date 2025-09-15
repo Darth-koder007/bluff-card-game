@@ -6,7 +6,8 @@
   "scripts": {
     "build": "prisma generate && tsc",
     "dev": "prisma generate && tsx watch src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "lint": "eslint . --ext .ts"
   },
   "dependencies": {
     "@bluff/shared": "workspace:*",

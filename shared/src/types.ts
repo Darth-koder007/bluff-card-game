@@ -25,7 +25,7 @@ export interface GameState {
   rules: Rules;
   winnerId?: string;
   currentDeclaredRank: Rank;
-  rankSelectionMode: 'FREE' | 'FIXED';
+  expectedRank: Rank | null;
 }
 
 export type Move =
@@ -37,6 +37,8 @@ export type GameEvent =
   | { type: 'PLAYER_EMPTIED_HAND'; playerId: string }
   | {
       type: 'PILE_TAKEN';
-      playerId: string;
-      reason: 'BLUFF_CALLED_CORRECTLY' | 'BLUFF_CALLED_INCORRECTLY';
+      takerId: string;
+      blufferId: string;
+      challengerId: string;
+      bluffWasTruthful: boolean;
     };

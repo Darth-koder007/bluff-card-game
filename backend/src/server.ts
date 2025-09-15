@@ -111,8 +111,10 @@ io.on('connection', (socket: SocketWithAuth) => {
             break;
           case 'PILE_TAKEN':
             io.to(roomName).emit('pileTaken', {
-              playerId: event.playerId,
-              reason: event.reason,
+              takerId: event.takerId,
+              blufferId: event.blufferId,
+              challengerId: event.challengerId,
+              bluffWasTruthful: event.bluffWasTruthful,
             });
             break;
         }

@@ -24,6 +24,10 @@ This project is a monorepo managed with pnpm workspaces. The code is organized i
 - **Shared Code**: A dedicated shared package ensures that the frontend and backend are always in sync regarding data structures and game logic.
 - **Real-time Communication**: WebSockets (with Socket.IO) are used for real-time communication between the clients and the server.
 
+## Game Rules
+
+- **Declared Rank**: A player must declare a rank in sequence from the previous one (A, 2, ..., K, then back to A). When the pile is cleared, the declared rank resets to 'A'.
+
 ## Getting Started
 
 ### Prerequisites
