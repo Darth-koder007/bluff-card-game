@@ -3,7 +3,7 @@
 ## Phase 0 – Foundational Tooling
 
 - [x] Set up linting, formatting, and pre-commit hooks (ESLint, Prettier, Husky).
-- [ ] Standardize on a testing framework (Vitest).
+- [x] Standardize on a testing framework (Vitest).
 - [x] Containerize the entire application with Docker.
 
 ## Phase 1 – Core Game Engine
@@ -13,7 +13,7 @@
 - [x] Implement moves: `PLAY`, `PASS`, `CALL_BLUFF`.
 - [x] Implement single pass rule.
 - [x] Implement dynamic declared rank selection.
-- [ ] Write Jest tests for engine.
+
 
 ## Phase 2 – Backend Server
 
